@@ -1,0 +1,27 @@
+[package]
+name = "http-tunel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = "0.1.88"
+clap = { version = "4.5.43", features = ["derive"] }
+derive_builder = "0.20.2"
+humantime-serde = "1.1.1"
+log = "0.4.27"
+native-tls = "0.2.14"
+net = "0.0.2"
+rand = "0.9.2"
+regex = "1.11.1"
+serde = "1.0.219"
+serde_regex = "1.1.0"
+serde_yaml = "0.9.34"
+spawn = "0.0.2"
+tempfile = "3.20.0"
+tokio = "1.47.1"
+yaml = "0.3.0"
+
+[lib]
+name = "configuration"
+path = "src/configuration.rs"
+test = true
