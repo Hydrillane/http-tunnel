@@ -1,9 +1,12 @@
-use std::{collections::HashMap, hash::Hash, net::SocketAddr, sync::{Arc, RwLock}, time::Instant};
+use std::{collections::HashMap, hash::Hash, marker::PhantomData, net::SocketAddr, sync::{Arc, RwLock}, time::Instant};
+use derive_builder;
 
 use humantime_serde::re::humantime::Duration;
 use tokio::io;
 
 use rand::thread_rng;
+
+use crate::tunnel::TunnelCtx;
 
 type CachedSocketAddr = (Vec<SocketAddr>,u128);
 
@@ -38,5 +41,35 @@ impl SimpleCachingDnsResolver {
             ttl,
             start_time: Instant::now(),
         }
+    }
+}
+
+#[derive(Clone,Builder)]
+pub struct SimpleTcpConnector<D, R:DnsResolver> {
+    connect_timeout: Duration,
+    tunnel_ctx: TunnelCtx,
+    dns_resolver:R,
+    #[builder(setter(skip))]
+    _phantom_target:PhantomData<D>, 
+}
+
+
+#[derive(Eq,PartialEq,Debug,Clone)]
+pub struct Nugget {
+    data:Arc<Vec<u8>>
+}
+
+impl<D,R> SimpleTcpConnector<D,R>
+where 
+    R:DnsResolver,
+{
+    pub fn new(dns_resolver:R,connection_timeout:Duration,tunnel_ctx_:TunnelCtx) -> Self  {
+        Self {
+            dns_resolver,
+            connect_timeout,
+            tunnel_ctx,
+            _phantom_target:PhantomData,
+        }
+
     }
 }

@@ -1,12 +1,17 @@
-use std::io::{self, Error};
+use std::{io::{self, Error}, thread::spawn};
 use configuration::{ProxyConfiguration, ProxyMode};
+use http_tunnel_codec::{HttpTunnelCodec, HttpTunnelCodecBuilder, HttpTunnelTarget};
 use log::{info,error};
-use proxy_target::{DnsResolver, SimpleCachingDnsResolver};
-use tokio::{net::{self, TcpListener, TcpSocket}, sync::watch::error};
+use proxy_target::{DnsResolver, SimpleCachingDnsResolver, SimpleTcpConnector};
+use tokio::{io::{AsyncRead, AsyncWrite}, net::{self, TcpListener, TcpSocket}, sync::watch::error, task};
 
 mod configuration;
+mod tunnel;
+mod http_tunnel_codec;
 mod relay;
 mod proxy_target;
+use rand::{thread_rng,Rng};
+use tunnel::TunnelCtxBuilder;
 
 
 async fn main() -> io::Result<()> {
@@ -49,6 +54,27 @@ async fn start_listening_tcp(config: &ProxyConfiguration) -> Result<TcpListener,
 
 async fn serve_plain_text(proxy_configuration:ProxyConfiguration, dns_resolver:DnsResolver) -> io::Result<()> {
     let listener = start_listening_tcp(&config).await?;
+
+    loop {
+        let socket = listener.accept().await;
+
+        let dns_resolver_ref = dns_resolver.clone();
+
+        match socket{
+            Ok((stream,_)) => {
+                stream.nodelay().unwrap_or_default();
+                let config = config.clone();
+                // handle accepted connections asynchronously
+                tokio::spawn(async move {
+                    tunnel_stream(&config, client_connection, dns_resolver)
+
+                })  
+
+            }
+        }
+
+    }
+
 }
 
 async fn start_listening_tcp(config:ProxyConfiguration) -> Result<TcpListener,Error> {
@@ -65,4 +91,26 @@ async fn start_listening_tcp(config:ProxyConfiguration) -> Result<TcpListener,Er
             Err(e)
         }
     }
+}
+
+async fn tunnel_stream<C: AsyncRead + AsyncWrite + Send + Unpin + 'static>(
+    config: &ProxyConfiguration,
+    client_connection:C,
+    dns_resolver:DnsResolver
+) -> io::Result<()> {
+    let ctx = TunnelCtxBuilder::default()
+        .id(thread_rng().r#gen::<u128>())
+        .build()
+        .expect("Tunnelctxbuilder: failed");
+
+    let codex: HttpTunnelCodec = HttpTunnelCodecBuilder::default()
+        .tunnel_ctx(ctx)
+        .enabled_targets(
+            config.tunnel_config.target_connection.allowed_targets.clone()
+        )
+        .build()
+        .expect("HttpTunnelCodecBuilder failed");
+
+    let connector: SimpleTcpConnector<HttpTunnelTarget, DnsResolver>
+
 }

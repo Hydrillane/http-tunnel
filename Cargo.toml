@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 async-trait = "0.1.88"
+bytes = "1.10.1"
 clap = { version = "4.5.43", features = ["derive"] }
 derive_builder = "0.20.2"
 humantime-serde = "1.1.1"
@@ -17,11 +18,19 @@ serde = "1.0.219"
 serde_regex = "1.1.0"
 serde_yaml = "0.9.34"
 spawn = "0.0.2"
+task = "0.0.1"
 tempfile = "3.20.0"
-tokio = "1.47.1"
+tokio = {version ="1.47.1", features=["full"]}
+tokio-util = {version ="0.7.16",features=["codec"]}
+tunnel = "0.2.0"
 yaml = "0.3.0"
 
 [lib]
 name = "configuration"
 path = "src/configuration.rs"
 test = true
+
+[features]
+# For legacy software you can enable plain_text tunnelling
+default = []
+plain_text = []
